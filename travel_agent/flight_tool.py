@@ -78,11 +78,11 @@ def search_flights(
     }
     if return_date:
         params["return_date"] = return_date
-
+    print("params",params)
     response = requests.get(SERPAPI_URL, params=params, timeout=30)
     response.raise_for_status()
     data = response.json()
-
+    print(data)
     if "error" in data:
         return f"Flight search failed: {data['error']}"
 
