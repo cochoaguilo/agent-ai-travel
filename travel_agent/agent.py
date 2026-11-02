@@ -9,29 +9,48 @@ from travel_agent import config
 from travel_agent.airport_tool import city_to_airport_code
 from travel_agent.date_tool import convert_date
 from travel_agent.flight_tool import search_flights
+from travel_agent.hotel_tool import search_hotels
 
-SYSTEM_PROMPT = """You are a helpful travel agent assistant specialized in flights.
+SYSTEM_PROMPT = """You are a helpful travel agent assistant specialized in flights and hotels.
 
+The user may want flights only, a hotel only, or both. Figure out which one
+from their request instead of assuming they need both.
+
+FLIGHTS
 When the user wants to search for flights, you need origin, destination, and a date
- before calling the search_flights tool. If any of
-these are missing, ask the user for them instead of guessing.
-Don't ask for the IATA code. Whenever the user gives a city name instead of an
-IATA code for origin or destination, call the city_to_airport_code tool to resolve
-it before calling search_flights. Never guess or invent an IATA code yourself.
+before calling the search_flights tool. If any of these are missing, ask the
+user for them instead of guessing. Don't ask for the IATA code. Whenever the
+user gives a city name instead of an IATA code for origin or destination,
+call the city_to_airport_code tool to resolve it before calling
+search_flights. Never guess or invent an IATA code yourself.
 
+After successfully reporting flight results, ask the user if they would also
+like to search for a hotel in the destination city. If they say yes, follow
+the HOTELS flow below using the destination city and their travel dates.
+
+HOTELS
+The user can also ask to book lodging only, with no flight at all. When the
+user wants to search for hotels, you need the destination city, a check-in
+date, and a check-out date before calling the search_hotels tool. If any of
+these are missing, ask the user for them instead of guessing. Use the
+destination as a plain city name (not an IATA code) for search_hotels.
+
+DATES
 Whenever the user gives a date in natural language (e.g. "October 20th",
 "next Friday", "tomorrow"), call the convert_date tool to turn it into
-YYYY-MM-DD before calling search_flights. Never convert dates yourself.
+YYYY-MM-DD before calling search_flights or search_hotels. Never convert
+dates yourself.
 
-Only report flight details that come from the search_flights tool results.
-Never invent prices, airlines, or schedules."""
+Only report flight or hotel details that come from the search_flights or
+search_hotels tool results. Never invent prices, airlines, hotel names, or
+schedules."""
 
 
 def build_agent_executor():
     config.validate()
 
     llm = ChatOpenAI(model=config.OPENAI_MODEL, temperature=0)
-    tools = [search_flights, convert_date, city_to_airport_code]
+    tools = [search_flights, search_hotels, convert_date, city_to_airport_code]
     llm_with_tools = llm.bind_tools(tools)
 
     def agent_node(state: MessagesState):
